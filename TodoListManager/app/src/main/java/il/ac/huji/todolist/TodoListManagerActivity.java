@@ -2,6 +2,7 @@ package il.ac.huji.todolist;
 
 import android.app.AlertDialog;
 import android.content.DialogInterface;
+import android.content.res.Resources;
 import android.support.v7.app.ActionBarActivity;
 import android.os.Bundle;
 import android.view.Menu;
@@ -10,24 +11,33 @@ import android.view.View;
 import android.widget.AdapterView;
 import android.widget.EditText;
 import android.widget.ListView;
+import android.net.Uri;
 
 import java.util.ArrayList;
+import android.content.Intent;
+import java.util.Date;
+import java.text.DateFormat;
+import java.text.SimpleDateFormat;
 
 
 public class TodoListManagerActivity extends ActionBarActivity {
 
-    ArrayList<String> todoList;
+    ArrayList<String[]> todoList;
     MyCustomAdapter todoAdapter;
     AlertDialog.Builder alertDialogBuilder;
     ListView listView;
     AlertDialog alertDialog;
     EditText toAdd;
+    CharSequence[] items;
+    AlertDialog.Builder builder;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_todo_list_manager);
-        todoList = new ArrayList<>();
-        todoAdapter = new MyCustomAdapter(getApplicationContext(), android.R.layout.simple_list_item_1, todoList);
+        todoList = new ArrayList<String[]>();
+
+
+        todoAdapter = new MyCustomAdapter(getApplicationContext(),R.layout.listitem, todoList);
         listView = (ListView) findViewById(R.id.lstTodoItems);
         listView.setAdapter((todoAdapter));
         toAdd = (EditText) findViewById(R.id.edtNewItem);
@@ -41,27 +51,36 @@ public class TodoListManagerActivity extends ActionBarActivity {
                 // TODO Auto-generated method stub
 
 
+                  if (todoList.get(pos)[0].startsWith("Call ")) {
+                      items = new CharSequence[2];
+                      items[0] = "Delete item";
+                      items[1] = todoList.get(pos)[0];
+                  } else {
+                      items = new CharSequence[1];
+                      items[0] = "Delete item";
+                  }
 
-                // set title
-                alertDialogBuilder.setTitle(todoList.get(pos));
-
-                // set dialog message
-                alertDialogBuilder
-                        .setCancelable(false)
-                        .setNegativeButton("Delete item", new DialogInterface.OnClickListener() {
-                            public void onClick(DialogInterface dialog, int id) {
-                                todoList.remove(myPos);
-                                todoAdapter.notifyDataSetChanged();
-                                alertDialog.dismiss();
-                            }
-                        });
-
-
-                // create alert dialog
-                alertDialog = alertDialogBuilder.create();
-
-                // show it
+                builder = new AlertDialog.Builder(TodoListManagerActivity.this);
+                builder.setTitle(todoList.get(pos)[0]);
+                builder.setItems(items, new DialogInterface.OnClickListener() {
+                    public void onClick(DialogInterface dialog, int item) {
+                        if (item == 0) {
+                            todoList.remove(myPos);
+                            todoAdapter.notifyDataSetChanged();
+                            alertDialog.dismiss();
+                        }
+                        if (item == 1) {
+                            String phone = todoList.get(myPos)[0];
+                            phone = phone.substring(5);
+                            Intent dial = new Intent(Intent.ACTION_DIAL, Uri.parse("tel:" + phone));
+                            startActivity(dial);
+                        }
+                    }
+                });
+                alertDialog = builder.create();
                 alertDialog.show();
+
+
 
                 return true;
             }
@@ -87,46 +106,38 @@ public class TodoListManagerActivity extends ActionBarActivity {
         // automatically handle clicks on the Home/Up button, so long
         // as you specify a parent activity in AndroidManifest.xml.
         int id = item.getItemId();
-
-        //noinspection SimplifiableIfStatement
-        /*if (id == R.id.action_settings) {
-            return true;
-        }*/
-
+        //android.util.Log.v("c", "am here");
         if (id == R.id.add) {
-            if (!(toAdd.getText() == null || toAdd.getText().toString() == null || toAdd.getText().toString().equals(""))) {
-                todoList.add(toAdd.getText().toString());
-                toAdd.setText("");
-                todoAdapter.notifyDataSetChanged();
-            }
-            return true;
+            Intent intent = new Intent(this, AddNewTodoItemActivity.class);
+
+            startActivityForResult(intent, 1);
+            //startActivity(intent);
+
+
+
         }
 
         return super.onOptionsItemSelected(item);
     }
 
-    /*
-    @Override
+    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
 
-    public boolean onMenuOpened(int featureId, Menu menu)
-    {
+        if (requestCode == 1) {
+            if(resultCode == RESULT_OK){
+                String theTitle = data.getStringExtra("title");
+                Date dueDate = new Date();
+                dueDate.setTime(data.getLongExtra("dueDate", -1));
+                DateFormat df = new SimpleDateFormat("dd/MM/yyyy");
+                String theDate = df.format(dueDate);
+                todoList.add(new String[] {theTitle, theDate});
+                todoAdapter.notifyDataSetChanged();
 
-        if(featureId == Window.FEATURE_ACTION_BAR && menu != null){
-            if(menu.getClass().getSimpleName().equals("MenuBuilder")){
-                try{
-                    Method m = menu.getClass().getDeclaredMethod(
-                            "setOptionalIconsVisible", Boolean.TYPE);
-                    m.setAccessible(true);
-                    m.invoke(menu, true);
-                }
-                catch(NoSuchMethodException e){
-                   int a = 7;
-                }
-                catch(Exception e){
-                    throw new RuntimeException(e);
-                }
+            }
+            if (resultCode == RESULT_CANCELED) {
+
             }
         }
-        return super.onMenuOpened(featureId, menu);
-    }*/
+    }
+
+
 }
