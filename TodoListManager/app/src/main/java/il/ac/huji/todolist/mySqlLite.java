@@ -17,12 +17,12 @@ public class mySqlLite extends SQLiteOpenHelper {
     private static final String DATABASE_NAME = "TodoListManager";
 
     // Contacts table name
-    private static final String TABLE_TODO = "Todo";
+    public static final String TABLE_TODO = "Todo";
 
     // Contacts Table Columns names
-    private static final String KEY_ID = "id";
-    private static final String KEY_TITLE = "title";
-    private static final String KEY_DUE_DATE = "due_date";
+    public static final String KEY_ID = "id";
+    public static final String KEY_TITLE = "title";
+    public static final String KEY_DUE_DATE = "due_date";
 
     public mySqlLite(Context context) {
         super(context, DATABASE_NAME, null, DATABASE_VERSION);
