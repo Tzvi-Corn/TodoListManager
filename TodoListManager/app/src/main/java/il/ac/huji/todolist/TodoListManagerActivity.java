@@ -6,6 +6,9 @@ import android.content.res.Resources;
 import android.support.v7.app.ActionBarActivity;
 import android.os.Bundle;
 import android.view.Menu;
+import java.text.ParseException;
+import com.parse.SaveCallback;
+import com.parse.GetCallback;
 import android.util.Log;
 import android.view.MenuItem;
 import android.view.View;
@@ -21,6 +24,10 @@ import java.util.Date;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import android.database.sqlite.SQLiteDatabase;
+import com.parse.FindCallback;
+import java.util.List;
+import com.parse.ParseQuery;
+import com.parse.ParseObject;
 
 
 public class TodoListManagerActivity extends ActionBarActivity {
@@ -39,7 +46,8 @@ public class TodoListManagerActivity extends ActionBarActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        rowIdHolder = new ArrayList<>();
+        todoList = new ArrayList<String[]>();
+        /*rowIdHolder = new ArrayList<>();
         myDb = new mySqlLite(getApplicationContext());
         SQLiteDatabase db = myDb.getReadableDatabase();
         todoList = new ArrayList<String[]>();
@@ -55,7 +63,7 @@ public class TodoListManagerActivity extends ActionBarActivity {
             todoList.add(entry);
 
             resultSet.moveToNext();
-        }
+        }*/
 
         setContentView(R.layout.activity_todo_list_manager);
 
@@ -67,6 +75,7 @@ public class TodoListManagerActivity extends ActionBarActivity {
         toAdd = (EditText) findViewById(R.id.edtNewItem);
         listView.setLongClickable(true);
         alertDialogBuilder = new AlertDialog.Builder(this);
+
         listView.setOnItemLongClickListener(new AdapterView.OnItemLongClickListener() {
 
             public boolean onItemLongClick(AdapterView<?> arg0, View arg1,
@@ -75,14 +84,14 @@ public class TodoListManagerActivity extends ActionBarActivity {
                 // TODO Auto-generated method stub
 
 
-                  if (todoList.get(pos)[0].startsWith("Call ")) {
-                      items = new CharSequence[2];
-                      items[0] = "Delete item";
-                      items[1] = todoList.get(pos)[0];
-                  } else {
-                      items = new CharSequence[1];
-                      items[0] = "Delete item";
-                  }
+                if (todoList.get(pos)[0].startsWith("Call ")) {
+                    items = new CharSequence[2];
+                    items[0] = "Delete item";
+                    items[1] = todoList.get(pos)[0];
+                } else {
+                    items = new CharSequence[1];
+                    items[0] = "Delete item";
+                }
 
                 builder = new AlertDialog.Builder(TodoListManagerActivity.this);
                 builder.setTitle(todoList.get(pos)[0]);
@@ -90,13 +99,30 @@ public class TodoListManagerActivity extends ActionBarActivity {
                     public void onClick(DialogInterface dialog, int item) {
                         if (item == 0) {
 
-                            long id = Long.parseLong(todoList.get(myPos)[2]);
 
-                            SQLiteDatabase db = myDb.getWritableDatabase();
-                            db.delete(mySqlLite.TABLE_TODO, mySqlLite.KEY_ID + "='" + id + "'", null);
+
+                            //SQLiteDatabase db = myDb.getWritableDatabase();
+                            //db.delete(mySqlLite.TABLE_TODO, mySqlLite.KEY_ID + "='" + id + "'", null);
+                            ParseQuery<TodoItem> query = ParseQuery.getQuery("TodoItem");
+
+                            query.getInBackground(todoList.get(myPos)[2], new GetCallback<TodoItem>() {
+                                        @Override
+                                        public void done(TodoItem todoItem, com.parse.ParseException e) {
+                                            if (e == null) {
+                                                todoItem.deleteInBackground();
+
+                                            } else {
+
+                                            }
+
+                                        }
+
+
+                                    });
                             todoList.remove(myPos);
                             todoAdapter.notifyDataSetChanged();
                             alertDialog.dismiss();
+
                         }
                         if (item == 1) {
                             String phone = todoList.get(myPos)[0];
@@ -110,12 +136,28 @@ public class TodoListManagerActivity extends ActionBarActivity {
                 alertDialog.show();
 
 
-
                 return true;
             }
 
 
         });
+
+        ParseQuery<TodoItem> query = ParseQuery.getQuery("TodoItem");
+        query.findInBackground(new FindCallback<TodoItem>() {
+           @Override
+           public void done(List<TodoItem> itemList, com.parse.ParseException e) {
+               if (e == null) {
+                   for (int i = 0; i < itemList.size(); ++i) {
+                       String[] item = itemList.get(i).getItem();
+                       todoList.add(item);
+                   }
+                   todoAdapter.notifyDataSetChanged();
+
+               } else {
+               }
+           }
+       });
+
 
     }
 
@@ -153,29 +195,49 @@ public class TodoListManagerActivity extends ActionBarActivity {
 
         if (requestCode == 1) {
             if(resultCode == RESULT_OK){
-                String theTitle = data.getStringExtra("title");
+                final String theTitle = data.getStringExtra("title");
                 Date dueDate = new Date();
                 dueDate.setTime(data.getLongExtra("dueDate", -1));
                 DateFormat df = new SimpleDateFormat("dd/MM/yyyy");
-                String theDate = df.format(dueDate);
+                final String theDate = df.format(dueDate);
 
 
-                SQLiteDatabase db = myDb.getWritableDatabase();
+                //SQLiteDatabase db = myDb.getWritableDatabase();
 
                 // Create a new map of values, where column names are the keys
-                ContentValues values = new ContentValues();
-                values.put(mySqlLite.KEY_ID, heighestId + 1);
-                ++heighestId;
+                //ContentValues values = new ContentValues();
+                //values.put(mySqlLite.KEY_ID, heighestId + 1);
+                //++heighestId;
                 //values.put(mySqlLite.KEY_ID, todoList.size());
-                values.put(mySqlLite.KEY_TITLE, theTitle);
-                values.put(mySqlLite.KEY_DUE_DATE, theDate);
+                //values.put(mySqlLite.KEY_TITLE, theTitle);
+                //values.put(mySqlLite.KEY_DUE_DATE, theDate);
 
                 // Insert the new row, returning the primary key value of the new row
-                long newRowId;
-                newRowId = db.insert(mySqlLite.TABLE_TODO,null,values);
+                //long newRowId;
+                //newRowId = db.insert(mySqlLite.TABLE_TODO,null,values);
+                final TodoItem todoItem = new TodoItem(theTitle, theDate);
+                // Immediately save the data asynchronously
+                //todoItem.saveInBackground();
 
-                todoList.add(new String[] {theTitle, theDate, Long.toString(heighestId)});
-                todoAdapter.notifyDataSetChanged();
+                todoItem.saveInBackground(new SaveCallback() {
+
+
+                    @Override
+                    public void done(com.parse.ParseException e) {
+                        if (e == null) {
+                            // Saved successfully.
+
+                            String objectId = todoItem.getObjectId();
+                            todoList.add(new String[]{theTitle, theDate, objectId});
+                            todoAdapter.notifyDataSetChanged();
+                        } else {
+                            // The save failed.
+                            Log.d("tag ", "User update error: " + e);
+
+                        }
+                    }
+                });
+
 
             }
             if (resultCode == RESULT_CANCELED) {
